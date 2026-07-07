@@ -1,44 +1,77 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/notifikasi/notification_center.dart';
+import '../../auth/data/models/profile_model.dart';
+import '../../ticket/presentation/ticket_detail.dart';
 
-class NotificationScreen extends StatelessWidget {
-  const NotificationScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  final AppProfile profile;
+  const NotificationScreen({super.key, required this.profile});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => NotificationCenter.instance.markAllRead());
+  }
+
+  String _relativeTime(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return "Baru saja";
+    if (diff.inMinutes < 60) return "${diff.inMinutes} menit yang lalu";
+    if (diff.inHours < 24) return "${diff.inHours} jam yang lalu";
+    return "${diff.inDays} hari yang lalu";
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text("Notifikasi")),
-        body: ListView(
-    padding: const EdgeInsets.all(10),
-    children: [
-    _buildNotifyItem(
-    "Update Status",
-    "Tiket TKT-2026-001 Anda kini sedang dalam proses perbaikan.",
-    "10 menit yang lalu",
-    Icons.info_outline,
-    Colors.blue,
-    ),
-    _buildNotifyItem(
-    "Tiket Selesai",
-    "Masalah WiFi Mati telah dinyatakan selesai oleh petugas.",
-    "2 jam yang lalu",
-    Icons.check_circle_outline,
-    Colors.green,
-    ),
-    ],
-    ),
-    );
-  }
-
-  Widget _buildNotifyItem(String title, String desc, String time, IconData icon, Color color) {
-    return Card(
-      child: ListTile(
-          leading: Icon(icon, color: color),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(desc),
-          trailing: Text(time, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          onTap: () {
-            // Navigasi ke halaman terkait (FR-007 Flow 2)
-          },
+      appBar: AppBar(title: const Text("Notifikasi")),
+      body: ValueListenableBuilder<List<AppNotification>>(
+        valueListenable: NotificationCenter.instance.notifications,
+        builder: (context, notifs, _) {
+          if (notifs.isEmpty) {
+            return Center(
+              child: Text("Belum ada notifikasi.", style: Theme.of(context).textTheme.bodyMedium),
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final n = notifs[index];
+              return Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: AppColors.brandTint, borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.notifications_active_outlined, color: AppColors.brand, size: 20),
+                  ),
+                  title: Text(n.ticketTitle, style: Theme.of(context).textTheme.titleMedium),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(n.label, style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                  trailing: Text(_relativeTime(n.time), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 10)),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TicketDetailScreen(ticketId: n.ticketId, profile: widget.profile),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
