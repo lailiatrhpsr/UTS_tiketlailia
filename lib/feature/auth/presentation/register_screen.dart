@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/auth_service.dart';
 
@@ -48,8 +49,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SnackBar(content: Text('Registrasi berhasil. Silakan masuk.')),
       );
       Navigator.pop(context);
+    } on AuthException catch (e) {
+      // Pesan asli dari Supabase Auth (mis. "User already registered",
+      // "Password should be at least 6 characters", dll) -- sebelumnya
+      // ini ditelan jadi teks generik yang tidak membantu diagnosa.
+      setState(() => _errorText = e.message);
     } catch (e) {
-      setState(() => _errorText = 'Registrasi gagal. Coba lagi.');
+      setState(() => _errorText = 'Registrasi gagal: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
